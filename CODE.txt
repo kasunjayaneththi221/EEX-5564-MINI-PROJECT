@@ -1,0 +1,118 @@
+#include <iostream>
+#include <vector>
+using namespace std;
+
+// Define a structure to represent memory blocks
+struct Block {
+    int size;       // Size of the memory block
+    bool isFree;    // Whether the block is free
+    Block* next;    // Pointer to the next block in the free list
+
+    Block(int size) : size(size), isFree(true), next(nullptr) {}
+};
+
+// Quick Fit Allocator Class
+class QuickFitAllocator {
+private:
+    // Free lists for predefined block sizes
+    vector<int> blockSizes = {100, 500, 200, 300, 600};  // Updated block sizes
+    vector<Block*> freeLists;
+
+public:
+    QuickFitAllocator() {
+        // Initialize free lists for each block size
+        for (int size : blockSizes) {
+            freeLists.push_back(nullptr);  // Each list starts as empty
+        }
+    }
+
+    // Initialize memory pool with predefined block sizes
+    void initializeMemory() {
+        for (int i = 0; i < blockSizes.size(); i++) {
+            for (int j = 0; j < 5; j++) {  // Add 5 blocks for each size
+                Block* block = new Block(blockSizes[i]);
+                block->next = freeLists[i];
+                freeLists[i] = block;
+            }
+        }
+        cout << "Memory initialized with pre-allocated blocks.\n";
+    }
+
+    // Allocate a block of memory
+    Block* allocate(int size) {
+        for (int i = 0; i < blockSizes.size(); i++) {
+            if (blockSizes[i] == size) {
+                if (freeLists[i] != nullptr) {
+                    // Allocate the first block from the free list
+                    Block* block = freeLists[i];
+                    freeLists[i] = block->next;  // Remove block from the list
+                    block->isFree = false;      // Mark as allocated
+                    cout << "Allocated block of size " << size << endl;
+                    return block;
+                } else {
+                    cout << "No free block available for size " << size << endl;
+                    return nullptr;  // No block available
+                }
+            }
+        }
+        cout << "Invalid block size requested: " << size << endl;
+        return nullptr;
+    }
+
+    // Deallocate a block of memory
+    void deallocate(Block* block) {
+        if (block == nullptr) {
+            cout << "Error: Cannot deallocate a null block.\n";
+            return;
+        }
+        for (int i = 0; i < blockSizes.size(); i++) {
+            if (block->size == blockSizes[i]) {
+                block->isFree = true;           // Mark block as free
+                block->next = freeLists[i];     // Add block back to the free list
+                freeLists[i] = block;
+                cout << "Deallocated block of size " << block->size << endl;
+                return;
+            }
+        }
+        cout << "Error: Block size not recognized.\n";
+    }
+
+    // Print the current state of free lists
+    void printFreeLists() {
+        for (int i = 0; i < blockSizes.size(); i++) {
+            cout << "Free list for size " << blockSizes[i] << ": ";
+            Block* current = freeLists[i];
+            while (current != nullptr) {
+                cout << "[" << current->size << "] -> ";
+                current = current->next;
+            }
+            cout << "NULL\n";
+        }
+    }
+};
+
+// Driver function to test Quick Fit Allocator
+int main() {
+    QuickFitAllocator allocator;
+
+    // Initialize memory
+    allocator.initializeMemory();
+    allocator.printFreeLists();
+
+    // Allocate memory blocks
+    Block* block1 = allocator.allocate(100);
+    Block* block2 = allocator.allocate(500);
+    Block* block3 = allocator.allocate(200);
+    allocator.printFreeLists();
+
+    // Deallocate memory blocks
+    allocator.deallocate(block1);
+    allocator.deallocate(block2);
+    allocator.printFreeLists();
+
+    // Attempt to allocate a block that does not exist
+    Block* block4 = allocator.allocate(150);  // Invalid size
+    allocator.printFreeLists();
+
+    return 0;
+}
